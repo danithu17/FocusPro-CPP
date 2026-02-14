@@ -1,4 +1,4 @@
-name: Build C++ FocusPro
+name: Build Native FocusPro
 on: [push]
 jobs:
   build:
@@ -6,24 +6,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v1.3
-
-      - name: Setup NuGet
-        uses: nuget/setup-nuget@v1
-
-      - name: Restore SFML
-        run: nuget install sfml_graphics -Version 2.6.0 -OutputDirectory deps
+      - name: Configure CMake
+        run: cmake -B build
 
       - name: Build Project
-        # Path variables monawath ona na, vcxproj eka ugenma balagannawa
-        run: msbuild FocusPro.vcxproj /p:Configuration=Release /p:Platform=x64
-
-      - name: Copy DLLs
-        run: copy deps\sfml_graphics.2.6.0\build\native\bin\x64\*.dll x64\Release\
+        run: cmake --build build --config Release
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FocusPro-v3-Ready
-          path: x64/Release/
+          name: FocusPro-v4-Native
+          path: build/Release/FocusPro.exe

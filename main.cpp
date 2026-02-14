@@ -1,87 +1,89 @@
-#include <SFML/Graphics.hpp>
-#include <iostream>
-#include <vector>
-#include <string>
 #include <windows.h>
+#include <string>
+#include <vector>
 
-using namespace std;
+// Global Variables
+HWND hTimerText, hBtn;
+int timeLeft = 25 * 60; // 25 Minutes
+bool isRunning = false;
+std::vector<std::string> appsToBlock = {"chrome.exe", "msedge.exe", "discord.exe"};
 
-void killProcess(string processName) {
-    string cmd = "taskkill /F /IM " + processName + " > nul 2>&1";
-    system(cmd.c_str());
+// Function to kill apps
+void KillApps() {
+    for (const auto& app : appsToBlock) {
+        std::string cmd = "taskkill /F /IM " + app + " > nul 2>&1";
+        system(cmd.c_str());
+    }
 }
 
-int main() {
-    sf::ContextSettings settings;
-    settings.antialiasingLevel = 8;
+// Timer Logic
+void UpdateTimerDisplay() {
+    int m = timeLeft / 60;
+    int s = timeLeft % 60;
+    std::wstring timeStr = (m < 10 ? L"0" : L"") + std::to_wstring(m) + L":" + (s < 10 ? L"0" : L"") + std::to_wstring(s);
+    SetWindowTextW(hTimerText, timeStr.c_str());
+}
 
-    sf::RenderWindow window(sf::VideoMode(500, 600), "FocusPro v3.3", sf::Style::Titlebar | sf::Style::Close, settings);
-    window.setFramerateLimit(60);
+// Window Process logic
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+        case WM_CREATE:
+            // Timer Text Label
+            hTimerText = CreateWindowW(L"STATIC", L"25:00", WS_VISIBLE | WS_CHILD | SS_CENTER, 50, 50, 200, 50, hwnd, NULL, NULL, NULL);
+            // Start/Stop Button
+            hBtn = CreateWindowW(L"BUTTON", L"START FOCUS", WS_VISIBLE | WS_CHILD, 75, 120, 150, 40, hwnd, (HMENU)1, NULL, NULL);
+            
+            // Set Font to Arial
+            HFONT hFont;
+            hFont = CreateFontW(40, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
+            SendMessage(hTimerText, WM_SETFONT, (WPARAM)hFont, TRUE);
+            break;
 
-    sf::Font font;
-    if (!font.loadFromFile("C:/Windows/Fonts/arial.ttf")) return -1;
-
-    int timeLeft = 25 * 60;
-    bool isRunning = false;
-    sf::Clock clock;
-    float accumulator = 0.0f;
-
-    sf::CircleShape ring(150.f);
-    ring.setOutlineThickness(10.f);
-    ring.setOutlineColor(sf::Color(46, 204, 113));
-    ring.setFillColor(sf::Color::Transparent);
-    ring.setOrigin(150.f, 150.f);
-    ring.setPosition(250.f, 300.f);
-
-    sf::Text timerText;
-    timerText.setFont(font);
-    timerText.setCharacterSize(80);
-    timerText.setFillColor(sf::Color::White);
-
-    sf::RectangleShape btn(sf::Vector2f(220.f, 65.f));
-    btn.setFillColor(sf::Color(46, 204, 113));
-    btn.setOrigin(110.f, 32.5f);
-    btn.setPosition(250.f, 520.f);
-
-    vector<string> apps = {"chrome.exe", "msedge.exe", "discord.exe"};
-
-    while (window.isOpen()) {
-        sf::Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) window.close();
-            if (event.type == sf::Event::MouseButtonPressed) {
-                sf::Vector2f mPos(sf::Mouse::getPosition(window));
-                if (btn.getGlobalBounds().contains(mPos)) {
-                    isRunning = !isRunning;
-                    btn.setFillColor(isRunning ? sf::Color(231, 76, 60) : sf::Color(46, 204, 113));
-                }
+        case WM_COMMAND:
+            if (LOWORD(wParam) == 1) { // Button clicked
+                isRunning = !isRunning;
+                SetWindowTextW(hBtn, isRunning ? L"STOP" : L"START FOCUS");
+                if (isRunning) SetTimer(hwnd, 1, 1000, NULL);
+                else KillTimer(hwnd, 1);
             }
-        }
+            break;
 
-        if (isRunning) {
-            accumulator += clock.restart().asSeconds();
-            if (accumulator >= 1.0f) {
-                if (timeLeft > 0) {
-                    timeLeft--;
-                    for (auto& app : apps) killProcess(app);
-                }
-                accumulator = 0.0f;
+        case WM_TIMER:
+            if (timeLeft > 0) {
+                timeLeft--;
+                UpdateTimerDisplay();
+                KillApps();
+            } else {
+                KillTimer(hwnd, 1);
+                MessageBoxW(hwnd, L"Focus Session Finished!", L"FocusPro", MB_OK | MB_ICONINFORMATION);
             }
-        } else { clock.restart(); }
+            break;
 
-        int m = timeLeft / 60;
-        int s = timeLeft % 60;
-        timerText.setString((m < 10 ? "0" : "") + to_string(m) + ":" + (s < 10 ? "0" : "") + to_string(s));
-        
-        sf::FloatRect textBounds = timerText.getLocalBounds();
-        timerText.setOrigin(textBounds.left + textBounds.width / 2.0f, textBounds.top + textBounds.height / 2.0f);
-        timerText.setPosition(250.f, 285.f);
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            return 0;
+    }
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
 
-        window.clear(sf::Color(30, 39, 46));
-        window.draw(ring);
-        window.draw(timerText);
-        window.draw(btn);
-        window.display();
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    const wchar_t CLASS_NAME[] = L"FocusProWindowClass";
+    WNDCLASSW wc = {};
+    wc.lpfnWndProc = WindowProc;
+    wc.hInstance = hInstance;
+    wc.lpszClassName = CLASS_NAME;
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+
+    RegisterClassW(&wc);
+    HWND hwnd = CreateWindowExW(0, CLASS_NAME, L"FocusPro v4.0 (Native)", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 320, 250, NULL, NULL, hInstance, NULL);
+
+    if (hwnd == NULL) return 0;
+    ShowWindow(hwnd, nCmdShow);
+
+    MSG msg = {};
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
     }
     return 0;
 }
