@@ -1,5 +1,4 @@
 #include <SFML/Graphics.hpp>
-#include <SFML/Audio.hpp>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -16,18 +15,11 @@ int main() {
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
 
-    // SFML 2.6 syntax
-    sf::RenderWindow window(sf::VideoMode(500, 600), "FocusPro v3.2", sf::Style::Titlebar | sf::Style::Close, settings);
+    sf::RenderWindow window(sf::VideoMode(500, 600), "FocusPro v3.3", sf::Style::Titlebar | sf::Style::Close, settings);
     window.setFramerateLimit(60);
 
     sf::Font font;
     if (!font.loadFromFile("C:/Windows/Fonts/arial.ttf")) return -1;
-
-    sf::SoundBuffer startBuffer;
-    sf::Sound startSound;
-    if (startBuffer.loadFromFile("start.wav")) {
-        startSound.setBuffer(startBuffer);
-    }
 
     int timeLeft = 25 * 60;
     bool isRunning = false;
@@ -61,7 +53,6 @@ int main() {
                 sf::Vector2f mPos(sf::Mouse::getPosition(window));
                 if (btn.getGlobalBounds().contains(mPos)) {
                     isRunning = !isRunning;
-                    if (isRunning) startSound.play();
                     btn.setFillColor(isRunning ? sf::Color(231, 76, 60) : sf::Color(46, 204, 113));
                 }
             }
