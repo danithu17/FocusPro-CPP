@@ -1,3 +1,7 @@
+#ifndef UNICODE
+#define UNICODE
+#endif 
+
 #include <windows.h>
 #include <commctrl.h>
 #include <string>
@@ -23,7 +27,8 @@ std::vector<BlockableApp> appList = {
     {L"Spotify", "spotify.exe", false}
 };
 
-void KillSelectedApps() {
+// Function to block apps
+void KillApps() {
     for (const auto& app : appList) {
         if (app.shouldBlock) {
             std::string cmd = "taskkill /F /IM " + app.processName + " > nul 2>&1";
@@ -42,28 +47,28 @@ void UpdateTimerDisplay() {
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_CREATE: {
-            // Apple Style Font (Segoe UI is closest on Windows)
-            HFONT hFontMain = CreateFontW(60, 0, 0, 0, FW_LIGHT, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI Variable Display");
+            // Apple Style Fonts
+            HFONT hFontMain = CreateFontW(70, 0, 0, 0, FW_LIGHT, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI Variable Display");
             HFONT hFontSmall = CreateFontW(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI");
 
-            // Timer Display
-            hTimerText = CreateWindowW(L"STATIC", L"25:00", WS_VISIBLE | WS_CHILD | SS_CENTER, 0, 40, 400, 80, hwnd, NULL, NULL, NULL);
+            // Timer Display (Big and Minimal)
+            hTimerText = CreateWindowExW(0, L"STATIC", L"25:00", WS_VISIBLE | WS_CHILD | SS_CENTER, 0, 40, 400, 100, hwnd, NULL, NULL, NULL);
             SendMessage(hTimerText, WM_SETFONT, (WPARAM)hFontMain, TRUE);
 
             // Instructions
-            HWND hInfo = CreateWindowW(L"STATIC", L"Select apps to restrict during focus:", WS_VISIBLE | WS_CHILD, 30, 140, 340, 20, hwnd, NULL, NULL, NULL);
+            HWND hInfo = CreateWindowExW(0, L"STATIC", L"Select apps to restrict:", WS_VISIBLE | WS_CHILD, 35, 150, 330, 20, hwnd, NULL, NULL, NULL);
             SendMessage(hInfo, WM_SETFONT, (WPARAM)hFontSmall, TRUE);
 
             // App List (Checkbox List)
-            hList = CreateWindowExW(0, WC_LISTVIEW, L"", WS_VISIBLE | WS_CHILD | WS_BORDER | LVS_REPORT | LVS_NOCOLUMNHEADER, 30, 170, 340, 120, hwnd, NULL, NULL, NULL);
+            hList = CreateWindowExW(0, WC_LISTVIEWW, L"", WS_VISIBLE | WS_CHILD | WS_BORDER | LVS_REPORT | LVS_NOCOLUMNHEADER, 35, 180, 330, 120, hwnd, NULL, NULL, NULL);
             ListView_SetExtendedListViewStyle(hList, LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT);
             
             LVCOLUMNW lvc = {0};
             lvc.mask = LVCF_WIDTH;
-            lvc.cx = 320;
+            lvc.cx = 310;
             ListView_InsertColumn(hList, 0, &lvc);
 
-            for (int i = 0; i < appList.size(); i++) {
+            for (int i = 0; i < (int)appList.size(); i++) {
                 LVITEMW lvi = {0};
                 lvi.mask = LVIF_TEXT;
                 lvi.iItem = i;
@@ -71,8 +76,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 ListView_InsertItem(hList, &lvi);
             }
 
-            // Start Button (Clean Apple Style)
-            hBtn = CreateWindowW(L"BUTTON", L"Start Focus", WS_VISIBLE | WS_CHILD | BS_FLAT, 125, 310, 150, 45, hwnd, (HMENU)1, NULL, NULL);
+            // Start Button
+            hBtn = CreateWindowExW(0, L"BUTTON", L"Start Focus", WS_VISIBLE | WS_CHILD | BS_FLAT, 125, 320, 150, 45, hwnd, (HMENU)1, NULL, NULL);
             SendMessage(hBtn, WM_SETFONT, (WPARAM)hFontSmall, TRUE);
             break;
         }
@@ -80,8 +85,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case WM_COMMAND:
             if (LOWORD(wParam) == 1) {
                 if (!isRunning) {
-                    // Update app blocking state from listview
-                    for (int i = 0; i < appList.size(); i++) {
+                    for (int i = 0; i < (int)appList.size(); i++) {
                         appList[i].shouldBlock = ListView_GetCheckState(hList, i);
                     }
                     isRunning = true;
@@ -99,14 +103,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             if (timeLeft > 0) {
                 timeLeft--;
                 UpdateTimerDisplay();
-                KillAppsSelected(); // Block only if checked
+                KillApps();
             }
             break;
 
         case WM_CTLCOLORSTATIC: {
             HDC hdcStatic = (HDC)wParam;
-            SetTextColor(hdcStatic, RGB(60, 60, 60)); // Apple Dark Gray
-            SetBkColor(hdcStatic, RGB(255, 255, 255)); // White background
+            SetTextColor(hdcStatic, RGB(45, 45, 45));
+            SetBkColor(hdcStatic, RGB(255, 255, 255));
             return (LRESULT)GetStockObject(WHITE_BRUSH);
         }
 
@@ -116,9 +120,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
-
-// Wrapper to match previous calls
-void KillAppsSelected() { KillApps(); }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     const wchar_t CLASS_NAME[] = L"AppleFocusClass";
@@ -130,7 +131,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 
     RegisterClassW(&wc);
-    HWND hwnd = CreateWindowExW(0, CLASS_NAME, L"FocusPro - Minimal", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 415, 420, NULL, NULL, hInstance, NULL);
+    HWND hwnd = CreateWindowExW(0, CLASS_NAME, L"FocusPro", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 415, 430, NULL, NULL, hInstance, NULL);
 
     ShowWindow(hwnd, nCmdShow);
     MSG msg = {};

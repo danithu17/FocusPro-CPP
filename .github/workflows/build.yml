@@ -1,22 +1,16 @@
-name: Build Apple Style FocusPro
+name: Build Apple FocusPro
 on: [push]
-
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Configure CMake
-        # කිසිම library එකක් නැති නිසා මේක තත්පර ගානකින් configure වෙනවා
         run: cmake -B build
-
       - name: Build Project
-        # මෙතනදී තමයි ඔයාගේ main.cpp එක .exe එකක් බවට පත් වෙන්නේ
         run: cmake --build build --config Release
-
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FocusPro-Apple-UI
+          name: FocusPro-v4-AppleUI
           path: build/Release/FocusPro.exe
