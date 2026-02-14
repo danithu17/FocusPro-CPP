@@ -1,4 +1,4 @@
-name: Build C++ FocusPro NuGet
+name: Build C++ FocusPro Final
 on: [push]
 jobs:
   build:
@@ -12,22 +12,19 @@ jobs:
       - name: Setup NuGet
         uses: nuget/setup-nuget@v1
 
-      - name: Install SFML via NuGet
-        # SFML libraries tika NuGet walin gannawa
+      - name: Restore NuGet Packages
         run: nuget install sfml_graphics -Version 2.6.0 -OutputDirectory packages
 
-      - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build with MSBuild
+        run: msbuild FocusPro.vcxproj /p:Configuration=Release /p:Platform=x64 /p:AdditionalIncludeDirectories="packages/sfml_graphics.2.6.0/build/native/include" /p:AdditionalLibraryDirectories="packages/sfml_graphics.2.6.0/build/native/lib/x64"
 
-      - name: Build Project
-        run: cmake --build build --config Release
-
-      - name: Copy Assets
+      - name: Copy DLLs and Sound
         run: |
-          if (Test-Path "start.wav") { copy start.wav build\Release\ }
+          copy packages\sfml_graphics.2.6.0\build\native\bin\x64\*.dll x64\Release\
+          if (Test-Path "start.wav") { copy start.wav x64\Release\ }
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FocusPro-NuGet-Build
-          path: build/Release/
+          name: FocusPro-Direct-Build
+          path: x64/Release/
