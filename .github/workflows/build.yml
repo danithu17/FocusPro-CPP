@@ -7,17 +7,21 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Install SFML via vcpkg
-        # Meke 'system' kalla ain kala, feature names deka witharak damma
+        # graphics සහ audio features අනිවාර්යයෙන්ම දාමු
         run: vcpkg install sfml[graphics,audio]:x64-windows
 
       - name: Configure CMake
-        run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
+        # SFML_DIR එක CMake එකට පෙන්වා දීමෙන් අර error එක නැති වෙනවා
+        run: >
+          cmake -B build 
+          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake 
+          -DVCPKG_TARGET_TRIPLET=x64-windows 
+          -DSFML_DIR=C:/vcpkg/installed/x64-windows/share/sfml
 
       - name: Build Project
         run: cmake --build build --config Release
 
       - name: Copy Assets
-        # PowerShell ekata hariyana widiyata script eka update kala
         run: |
           if (Test-Path "start.wav") {
             copy start.wav build\Release\
