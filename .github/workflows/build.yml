@@ -13,22 +13,17 @@ jobs:
         uses: nuget/setup-nuget@v1
 
       - name: Restore SFML
-        # SFML download කරලා 'deps' කියන folder එකට දානවා පටලවන්නේ නැතුව
         run: nuget install sfml_graphics -Version 2.6.0 -OutputDirectory deps
 
-      - name: Build with MSBuild
-        # Compile කරද්දී headers තියෙන තැන බලෙන්ම පෙන්වනවා
-        run: |
-          $includePath = "${{ github.workspace }}\deps\sfml_graphics.2.6.0\build\native\include"
-          $libPath = "${{ github.workspace }}\deps\sfml_graphics.2.6.0\build\native\lib\x64"
-          msbuild FocusPro.vcxproj /p:Configuration=Release /p:Platform=x64 /p:AdditionalIncludeDirectories="$includePath" /p:AdditionalLibraryDirectories="$libPath"
+      - name: Build Project
+        # Path variables monawath ona na, vcxproj eka ugenma balagannawa
+        run: msbuild FocusPro.vcxproj /p:Configuration=Release /p:Platform=x64
 
       - name: Copy DLLs
-        run: |
-          copy deps\sfml_graphics.2.6.0\build\native\bin\x64\*.dll x64\Release\
+        run: copy deps\sfml_graphics.2.6.0\build\native\bin\x64\*.dll x64\Release\
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FocusPro-v3-Final
+          name: FocusPro-v3-Ready
           path: x64/Release/

@@ -35,4 +35,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="deps\sfml_graphics.2.6.0\build\native\sfml_graphics.targets" Condition="Exists('deps\sfml_graphics.2.6.0\build\native\sfml_graphics.targets')" />
+  </ImportGroup>
 </Project>
