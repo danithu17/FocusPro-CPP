@@ -5,14 +5,19 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Install SFML via vcpkg
+        # Force SFML 3 install
         run: vcpkg install sfml:x64-windows-static
+
       - name: Configure CMake
         run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static
+
       - name: Build Project
         run: cmake --build build --config Release
-      - name: Upload
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FocusPro-AppleUI
-          path: build/Release/
+          name: FocusPro-Apple-Experience
+          path: build/Release/FocusPro.exe

@@ -2,112 +2,122 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <iomanip>
+#include <sstream>
 
-class Dashboard {
+// Apple-style Glass Card (Dashboard)
+class AppleDashboard {
 public:
-    sf::RectangleShape background;
-    sf::Text totalFocusTime;
-    sf::Text badgesText;
+    sf::RectangleShape card;
+    sf::Text title;
+    sf::Text stats;
+    std::vector<sf::RectangleShape> graphBars;
 
-    Dashboard(sf::Font& font) {
-        background.setSize(sf::Vector2f(440, 120));
-        background.setFillColor(sf::Color(255, 255, 255, 40)); // Apple Glass Look
-        background.setOutlineThickness(1);
-        background.setOutlineColor(sf::Color(255, 255, 255, 80));
-        background.setPosition(30, 430);
+    AppleDashboard(sf::Font& font) {
+        // Main Card
+        card.setSize({440.f, 180.f});
+        card.setFillColor(sf::Color(255, 255, 255, 30));
+        card.setOutlineThickness(1.5f);
+        card.setOutlineColor(sf::Color(255, 255, 255, 60));
+        card.setPosition(30, 430);
 
-        totalFocusTime.setFont(font);
-        totalFocusTime.setCharacterSize(18);
-        totalFocusTime.setFillColor(sf::Color::White);
-        totalFocusTime.setPosition(50, 450);
-        totalFocusTime.setString("Total Focus: 00h 00m");
+        title.setFont(font);
+        title.setString("Focus Dashboard");
+        title.setCharacterSize(22);
+        title.setFillColor(sf::Color::White);
+        title.setPosition(50, 445);
 
-        badgesText.setFont(font);
-        badgesText.setCharacterSize(18);
-        badgesText.setFillColor(sf::Color(200, 200, 200));
-        badgesText.setPosition(50, 485);
-        badgesText.setString("Badges: 🏆 Newbie");
+        stats.setFont(font);
+        stats.setString("Total: 12.5 hrs  |  Streak: 5 Days");
+        stats.setCharacterSize(16);
+        stats.setFillColor(sf::Color(200, 200, 200));
+        stats.setPosition(50, 480);
+
+        // Simple Graph Simulation
+        for (int i = 0; i < 7; i++) {
+            sf::RectangleShape bar({30.f, -(float)(rand() % 60 + 20)});
+            bar.setPosition(70.f + (i * 50), 580.f);
+            bar.setFillColor(sf::Color(0, 122, 255, 180)); // Apple Blue
+            graphBars.push_back(bar);
+        }
     }
 
     void draw(sf::RenderWindow& window) {
-        window.draw(background);
-        window.draw(totalFocusTime);
-        window.draw(badgesText);
+        window.draw(card);
+        window.draw(title);
+        window.draw(stats);
+        for (auto& bar : graphBars) window.draw(bar);
     }
 };
 
 int main() {
-    // Anti-aliasing for Apple smoothness
     sf::ContextSettings settings;
-    settings.antialiasingLevel = 8;
+    settings.antiAliasingLevel = 8;
 
-    sf::RenderWindow window(sf::VideoMode(500, 650), "FocusPro - Apple Experience", sf::Style::Titlebar | sf::Style::Close, settings);
+    sf::RenderWindow window(sf::VideoMode({500, 650}), "FocusPro v5 - Apple Experience", sf::Style::Titlebar | sf::Style::Close, settings);
     window.setFramerateLimit(60);
 
     sf::Font font;
     if (!font.loadFromFile("C:/Windows/Fonts/segoeui.ttf")) return -1;
 
-    Dashboard db(font);
+    AppleDashboard dashboard(font);
 
-    // Timer Logic
     int timeLeft = 25 * 60;
     bool isRunning = false;
     sf::Clock clock;
 
-    // UI Elements (Minimalist Apple Style)
-    sf::CircleShape timerRing(120.f);
-    timerRing.setOutlineThickness(5);
-    timerRing.setOutlineColor(sf::Color(100, 100, 100));
-    timerRing.setFillColor(sf::Color::Transparent);
-    timerRing.setOrigin(120, 120);
-    timerRing.setPosition(250, 200);
+    // UI - Main Timer Ring
+    sf::CircleShape ring(130.f);
+    ring.setOutlineThickness(8.f);
+    ring.setOutlineColor(sf::Color(60, 60, 60));
+    ring.setFillColor(sf::Color::Transparent);
+    ring.setOrigin({130.f, 130.f});
+    ring.setPosition({250.f, 210.f});
 
-    sf::Text timerDisplay;
-    timerDisplay.setFont(font);
-    timerDisplay.setCharacterSize(60);
-    timerDisplay.setFillColor(sf::Color::White);
+    sf::Text timerText(font, "25:00", 70);
+    timerText.setFillColor(sf::Color::White);
 
-    // Modern Button
-    sf::RectangleShape btn(sf::Vector2f(200, 50));
-    btn.setCornersRadius(25); // මේක SFML 3 වල තියෙන්නේ, 2.6 නම් manually අඳින්න ඕනේ
-    btn.setFillColor(sf::Color(0, 122, 255)); // Apple Blue
-    btn.setPosition(150, 350);
+    // Modern Pill Button
+    sf::RectangleShape btn({220.f, 60.f});
+    btn.setFillColor(sf::Color(0, 122, 255));
+    btn.setOrigin({110.f, 30.f});
+    btn.setPosition({250.f, 370.f});
 
     while (window.isOpen()) {
-        sf::Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) window.close();
-            if (event.type == sf::Event::MouseButtonPressed) {
-                if (btn.getGlobalBounds().contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))) {
+        while (const std::optional event = window.pollEvent()) {
+            if (event->is<sf::Event::Closed>()) window.close();
+            if (const auto* mb = event->getIf<sf::Event::MouseButtonPressed>()) {
+                if (btn.getGlobalBounds().contains(window.mapPixelToCoords({mb->position.x, mb->position.y}))) {
                     isRunning = !isRunning;
+                    btn.setFillColor(isRunning ? sf::Color(255, 59, 48) : sf::Color(0, 122, 255));
                 }
             }
         }
 
         if (isRunning) {
-            float dt = clock.restart().asSeconds();
             static float accum = 0;
-            accum += dt;
+            accum += clock.restart().asSeconds();
             if (accum >= 1.0f) {
                 if (timeLeft > 0) timeLeft--;
                 accum = 0;
             }
         } else { clock.restart(); }
 
-        // Update UI
+        // Update Timer Text
         int m = timeLeft / 60;
         int s = timeLeft % 60;
-        timerDisplay.setString((m < 10 ? "0" : "") + std::to_string(m) + ":" + (s < 10 ? "0" : "") + std::to_string(s));
-        timerDisplay.setOrigin(timerDisplay.getLocalBounds().width / 2, timerDisplay.getLocalBounds().height / 2);
-        timerDisplay.setPosition(250, 185);
+        std::stringstream ss;
+        ss << std::setw(2) << std::setfill('0') << m << ":" << std::setw(2) << std::setfill('0') << s;
+        timerText.setString(ss.str());
+        timerText.setOrigin({timerText.getLocalBounds().size.x / 2.f, timerText.getLocalBounds().size.y / 2.f});
+        timerText.setPosition({250.f, 190.f});
 
-        window.clear(sf::Color(25, 25, 25)); // Dark Apple Theme
-        window.draw(timerRing);
-        window.draw(timerDisplay);
+        window.clear(sf::Color(15, 15, 15));
+        window.draw(ring);
+        window.draw(timerText);
         window.draw(btn);
-        db.draw(window);
+        dashboard.draw(window);
         window.display();
     }
-
     return 0;
 }
