@@ -1,4 +1,4 @@
-name: Build C++ FocusPro Final
+name: Build C++ FocusPro
 on: [push]
 jobs:
   build:
@@ -12,19 +12,23 @@ jobs:
       - name: Setup NuGet
         uses: nuget/setup-nuget@v1
 
-      - name: Restore NuGet Packages
-        run: nuget install sfml_graphics -Version 2.6.0 -OutputDirectory packages
+      - name: Restore SFML
+        # SFML download කරලා 'deps' කියන folder එකට දානවා පටලවන්නේ නැතුව
+        run: nuget install sfml_graphics -Version 2.6.0 -OutputDirectory deps
 
       - name: Build with MSBuild
-        run: msbuild FocusPro.vcxproj /p:Configuration=Release /p:Platform=x64 /p:AdditionalIncludeDirectories="packages/sfml_graphics.2.6.0/build/native/include" /p:AdditionalLibraryDirectories="packages/sfml_graphics.2.6.0/build/native/lib/x64"
-
-      - name: Copy DLLs and Sound
+        # Compile කරද්දී headers තියෙන තැන බලෙන්ම පෙන්වනවා
         run: |
-          copy packages\sfml_graphics.2.6.0\build\native\bin\x64\*.dll x64\Release\
-          if (Test-Path "start.wav") { copy start.wav x64\Release\ }
+          $includePath = "${{ github.workspace }}\deps\sfml_graphics.2.6.0\build\native\include"
+          $libPath = "${{ github.workspace }}\deps\sfml_graphics.2.6.0\build\native\lib\x64"
+          msbuild FocusPro.vcxproj /p:Configuration=Release /p:Platform=x64 /p:AdditionalIncludeDirectories="$includePath" /p:AdditionalLibraryDirectories="$libPath"
+
+      - name: Copy DLLs
+        run: |
+          copy deps\sfml_graphics.2.6.0\build\native\bin\x64\*.dll x64\Release\
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FocusPro-Direct-Build
+          name: FocusPro-v3-Final
           path: x64/Release/
