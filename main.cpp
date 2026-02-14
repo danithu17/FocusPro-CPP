@@ -14,13 +14,14 @@ void killProcess(string processName) {
 
 int main() {
     sf::ContextSettings settings;
-    settings.antiAliasingLevel = 8;
+    settings.antialiasingLevel = 8;
 
-    sf::RenderWindow window(sf::VideoMode({500, 600}), "FocusPro v3.1", sf::Style::Titlebar | sf::Style::Close, settings);
+    // SFML 2.6 syntax
+    sf::RenderWindow window(sf::VideoMode(500, 600), "FocusPro v3.2", sf::Style::Titlebar | sf::Style::Close, settings);
     window.setFramerateLimit(60);
 
     sf::Font font;
-    if (!font.openFromFile("C:/Windows/Fonts/arial.ttf")) return -1;
+    if (!font.loadFromFile("C:/Windows/Fonts/arial.ttf")) return -1;
 
     sf::SoundBuffer startBuffer;
     sf::Sound startSound;
@@ -28,47 +29,40 @@ int main() {
         startSound.setBuffer(startBuffer);
     }
 
-    int totalSeconds = 25 * 60;
-    int timeLeft = totalSeconds;
+    int timeLeft = 25 * 60;
     bool isRunning = false;
     sf::Clock clock;
     float accumulator = 0.0f;
 
     sf::CircleShape ring(150.f);
-    ring.setPointCount(100);
-    ring.setFillColor(sf::Color::Transparent);
     ring.setOutlineThickness(10.f);
     ring.setOutlineColor(sf::Color(46, 204, 113));
-    ring.setOrigin({150.f, 150.f});
-    ring.setPosition({250.f, 300.f});
+    ring.setFillColor(sf::Color::Transparent);
+    ring.setOrigin(150.f, 150.f);
+    ring.setPosition(250.f, 300.f);
 
-    sf::Text timerText(font);
+    sf::Text timerText;
+    timerText.setFont(font);
     timerText.setCharacterSize(80);
     timerText.setFillColor(sf::Color::White);
 
     sf::RectangleShape btn(sf::Vector2f(220.f, 65.f));
     btn.setFillColor(sf::Color(46, 204, 113));
-    btn.setOrigin({110.f, 32.5f});
-    btn.setPosition({250.f, 520.f});
-
-    sf::Text btnText(font);
-    btnText.setCharacterSize(22);
-    btnText.setFillColor(sf::Color::White);
-    btnText.setString("START FOCUS");
+    btn.setOrigin(110.f, 32.5f);
+    btn.setPosition(250.f, 520.f);
 
     vector<string> apps = {"chrome.exe", "msedge.exe", "discord.exe"};
 
     while (window.isOpen()) {
-        while (const std::optional event = window.pollEvent()) {
-            if (event->is<sf::Event::Closed>()) window.close();
-            
-            if (event->is<sf::Event::MouseButtonPressed>()) {
-                sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-                if (btn.getGlobalBounds().contains(sf::Vector2f((float)mousePos.x, (float)mousePos.y))) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed) window.close();
+            if (event.type == sf::Event::MouseButtonPressed) {
+                sf::Vector2f mPos(sf::Mouse::getPosition(window));
+                if (btn.getGlobalBounds().contains(mPos)) {
                     isRunning = !isRunning;
                     if (isRunning) startSound.play();
                     btn.setFillColor(isRunning ? sf::Color(231, 76, 60) : sf::Color(46, 204, 113));
-                    btnText.setString(isRunning ? "STOP SESSION" : "START FOCUS");
                 }
             }
         }
@@ -82,27 +76,20 @@ int main() {
                 }
                 accumulator = 0.0f;
             }
-        } else {
-            clock.restart();
-        }
+        } else { clock.restart(); }
 
         int m = timeLeft / 60;
         int s = timeLeft % 60;
         timerText.setString((m < 10 ? "0" : "") + to_string(m) + ":" + (s < 10 ? "0" : "") + to_string(s));
         
         sf::FloatRect textBounds = timerText.getLocalBounds();
-        timerText.setOrigin({textBounds.size.x / 2.0f, textBounds.size.y / 2.0f});
-        timerText.setPosition({250.f, 285.f});
-
-        sf::FloatRect btnTextBounds = btnText.getLocalBounds();
-        btnText.setOrigin({btnTextBounds.size.x / 2.0f, btnTextBounds.size.y / 2.0f});
-        btnText.setPosition({250.f, 515.f});
+        timerText.setOrigin(textBounds.left + textBounds.width / 2.0f, textBounds.top + textBounds.height / 2.0f);
+        timerText.setPosition(250.f, 285.f);
 
         window.clear(sf::Color(30, 39, 46));
         window.draw(ring);
         window.draw(timerText);
         window.draw(btn);
-        window.draw(btnText);
         window.display();
     }
     return 0;

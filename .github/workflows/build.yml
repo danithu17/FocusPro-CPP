@@ -1,34 +1,33 @@
-name: Build C++ FocusPro
+name: Build C++ FocusPro NuGet
 on: [push]
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Install SFML via vcpkg
-        # graphics සහ audio features අනිවාර්යයෙන්ම දාමු
-        run: vcpkg install sfml[graphics,audio]:x64-windows
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.3
+
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v1
+
+      - name: Install SFML via NuGet
+        # SFML libraries tika NuGet walin gannawa
+        run: nuget install sfml_graphics -Version 2.6.0 -OutputDirectory packages
 
       - name: Configure CMake
-        # SFML_DIR එක CMake එකට පෙන්වා දීමෙන් අර error එක නැති වෙනවා
-        run: >
-          cmake -B build 
-          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake 
-          -DVCPKG_TARGET_TRIPLET=x64-windows 
-          -DSFML_DIR=C:/vcpkg/installed/x64-windows/share/sfml
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build Project
         run: cmake --build build --config Release
 
       - name: Copy Assets
         run: |
-          if (Test-Path "start.wav") {
-            copy start.wav build\Release\
-          }
+          if (Test-Path "start.wav") { copy start.wav build\Release\ }
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FocusPro-v3-Application
+          name: FocusPro-NuGet-Build
           path: build/Release/
