@@ -5,14 +5,24 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Install SFML via vcpkg
-        run: vcpkg install sfml[graphics,window,system,audio]:x64-windows
+        # Meke 'system' kalla ain kala, feature names deka witharak damma
+        run: vcpkg install sfml[graphics,audio]:x64-windows
+
       - name: Configure CMake
         run: cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
+
       - name: Build Project
         run: cmake --build build --config Release
+
       - name: Copy Assets
-        run: if (Test-Path "start.wav") { copy start.wav build\Release\ }
+        # PowerShell ekata hariyana widiyata script eka update kala
+        run: |
+          if (Test-Path "start.wav") {
+            copy start.wav build\Release\
+          }
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
