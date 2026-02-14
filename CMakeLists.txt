@@ -1,12 +1,11 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 project(FocusPro)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# SFML Static build (වැදගත්ම දේ)
+set(SFML_STATIC_LIBRARIES TRUE)
+find_package(SFML 2.5 COMPONENTS graphics window system audio REQUIRED)
+
 add_executable(FocusPro main.cpp)
-
-# Linking core Windows libraries
-target_link_libraries(FocusPro PRIVATE User32.lib Gdi32.lib Shell32.lib Comctl32.lib)
-
-# Ensure it builds as a Windows GUI (no console)
-set_target_properties(FocusPro PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
+target_link_libraries(FocusPro PRIVATE sfml-graphics sfml-window sfml-system sfml-audio)
