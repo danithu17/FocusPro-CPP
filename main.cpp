@@ -1,117 +1,109 @@
 #ifndef UNICODE
 #define UNICODE
-#endif 
+#endif
 
 #include <windows.h>
-#include <commctrl.h>
+#include <dwmapi.h> // Glass effect එකට
 #include <string>
 #include <vector>
+#include <shellapi.h>
 
-#pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "uxtheme.lib")
 
 // Global UI Handles
-HWND hTimerText, hBtn, hList;
+HWND hTimer, hBtn, hEdit;
 int timeLeft = 25 * 60;
 bool isRunning = false;
+int focusStreak = 0; // Challenge feature
 
-struct BlockableApp {
-    std::wstring name;
-    std::string processName;
-    bool shouldBlock;
-};
-
-std::vector<BlockableApp> appList = {
-    {L"Google Chrome", "chrome.exe", false},
-    {L"Microsoft Edge", "msedge.exe", false},
-    {L"Discord App", "discord.exe", false},
-    {L"Spotify", "spotify.exe", false}
-};
-
-// Function to block apps
-void KillApps() {
-    for (const auto& app : appList) {
-        if (app.shouldBlock) {
-            std::string cmd = "taskkill /F /IM " + app.processName + " > nul 2>&1";
-            system(cmd.c_str());
-        }
-    }
+// Modern Glass/Acrylic Effect apply කරන function එක
+void ApplyGlassEffect(HWND hwnd) {
+    DWM_SYSTEM_BACKDROP_TYPE backdropType = DWMSBT_TRANSIENTBACKDROP; // Acrylic style
+    DwmSetWindowAttribute(hwnd, DWMWA_SYSTEM_BACKDROP_TYPE, &backdropType, sizeof(backdropType));
+    
+    // Rounded Corners (Windows 11 look for Apple Feel)
+    DWM_WINDOW_CORNER_PREFERENCE corner = DWMWCP_ROUND;
+    DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &corner, sizeof(corner));
 }
 
-void UpdateTimerDisplay() {
-    int m = timeLeft / 60;
-    int s = timeLeft % 60;
-    std::wstring timeStr = (m < 10 ? L"0" : L"") + std::to_wstring(m) + L":" + (s < 10 ? L"0" : L"") + std::to_wstring(s);
-    SetWindowTextW(hTimerText, timeStr.c_str());
+// CMD එක පේන්නේ නැතුව Apps අයින් කරන විදිහ
+void KillAppSilent(std::wstring processName) {
+    std::wstring cmd = L"/C taskkill /F /IM " + processName + L" > nul 2>&1";
+    ShellExecuteW(NULL, L"open", L"cmd.exe", cmd.c_str(), NULL, SW_HIDE);
 }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_CREATE: {
-            // Apple Style Fonts
-            HFONT hFontMain = CreateFontW(70, 0, 0, 0, FW_LIGHT, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI Variable Display");
-            HFONT hFontSmall = CreateFontW(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI");
-
-            // Timer Display (Big and Minimal)
-            hTimerText = CreateWindowExW(0, L"STATIC", L"25:00", WS_VISIBLE | WS_CHILD | SS_CENTER, 0, 40, 400, 100, hwnd, NULL, NULL, NULL);
-            SendMessage(hTimerText, WM_SETFONT, (WPARAM)hFontMain, TRUE);
-
-            // Instructions
-            HWND hInfo = CreateWindowExW(0, L"STATIC", L"Select apps to restrict:", WS_VISIBLE | WS_CHILD, 35, 150, 330, 20, hwnd, NULL, NULL, NULL);
-            SendMessage(hInfo, WM_SETFONT, (WPARAM)hFontSmall, TRUE);
-
-            // App List (Checkbox List)
-            hList = CreateWindowExW(0, WC_LISTVIEWW, L"", WS_VISIBLE | WS_CHILD | WS_BORDER | LVS_REPORT | LVS_NOCOLUMNHEADER, 35, 180, 330, 120, hwnd, NULL, NULL, NULL);
-            ListView_SetExtendedListViewStyle(hList, LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT);
+            ApplyGlassEffect(hwnd);
             
-            LVCOLUMNW lvc = {0};
-            lvc.mask = LVCF_WIDTH;
-            lvc.cx = 310;
-            ListView_InsertColumn(hList, 0, &lvc);
+            HFONT hFontMain = CreateFontW(80, 0, 0, 0, FW_THIN, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI Variable Display");
+            HFONT hFontSub = CreateFontW(20, 0, 0, 0, FW_REGULAR, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Segoe UI Variable Text");
 
-            for (int i = 0; i < (int)appList.size(); i++) {
-                LVITEMW lvi = {0};
-                lvi.mask = LVIF_TEXT;
-                lvi.iItem = i;
-                lvi.pszText = (LPWSTR)appList[i].name.c_str();
-                ListView_InsertItem(hList, &lvi);
-            }
+            // Timer display
+            hTimer = CreateWindowExW(0, L"STATIC", L"25:00", WS_VISIBLE | WS_CHILD | SS_CENTER, 0, 60, 450, 100, hwnd, NULL, NULL, NULL);
+            SendMessage(hTimer, WM_SETFONT, (WPARAM)hFontMain, TRUE);
 
-            // Start Button
-            hBtn = CreateWindowExW(0, L"BUTTON", L"Start Focus", WS_VISIBLE | WS_CHILD | BS_FLAT, 125, 320, 150, 45, hwnd, (HMENU)1, NULL, NULL);
-            SendMessage(hBtn, WM_SETFONT, (WPARAM)hFontSmall, TRUE);
+            // App Name Input (Apple Search Style)
+            CreateWindowExW(0, L"STATIC", L"Type App to Block (e.g. chrome.exe):", WS_VISIBLE | WS_CHILD, 50, 180, 350, 25, hwnd, NULL, NULL, NULL);
+            hEdit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"chrome.exe", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 50, 210, 350, 35, hwnd, NULL, NULL, NULL);
+            SendMessage(hEdit, WM_SETFONT, (WPARAM)hFontSub, TRUE);
+
+            // Streak/Challenge Text
+            std::wstring streakStr = L"🔥 Current Focus Streak: " + std::to_wstring(focusStreak);
+            HWND hStreak = CreateWindowExW(0, L"STATIC", streakStr.c_str(), WS_VISIBLE | WS_CHILD | SS_CENTER, 50, 270, 350, 25, hwnd, (HMENU)2, NULL, NULL);
+            SendMessage(hStreak, WM_SETFONT, (WPARAM)hFontSub, TRUE);
+
+            // Modern Rounded Button (We simulate with a Flat Button for now)
+            hBtn = CreateWindowExW(0, L"BUTTON", L"START FOCUS", WS_VISIBLE | WS_CHILD | BS_FLAT, 125, 330, 200, 50, hwnd, (HMENU)1, NULL, NULL);
+            SendMessage(hBtn, WM_SETFONT, (WPARAM)hFontSub, TRUE);
             break;
         }
 
         case WM_COMMAND:
-            if (LOWORD(wParam) == 1) {
-                if (!isRunning) {
-                    for (int i = 0; i < (int)appList.size(); i++) {
-                        appList[i].shouldBlock = ListView_GetCheckState(hList, i);
-                    }
-                    isRunning = true;
-                    SetWindowTextW(hBtn, L"End Session");
-                    SetTimer(hwnd, 1, 1000, NULL);
-                } else {
-                    isRunning = false;
-                    KillTimer(hwnd, 1);
-                    SetWindowTextW(hBtn, L"Start Focus");
-                }
+            if (LOWORD(wParam) == 1) { // Start/Stop Button
+                isRunning = !isRunning;
+                SetWindowTextW(hBtn, isRunning ? L"END SESSION" : L"START FOCUS");
+                if (isRunning) SetTimer(hwnd, 1, 1000, NULL);
+                else KillTimer(hwnd, 1);
             }
             break;
 
-        case WM_TIMER:
+        case WM_TIMER: {
             if (timeLeft > 0) {
                 timeLeft--;
-                UpdateTimerDisplay();
-                KillApps();
+                int m = timeLeft / 60;
+                int s = timeLeft % 60;
+                std::wstring timeStr = (m < 10 ? L"0" : L"") + std::to_wstring(m) + L":" + (s < 10 ? L"0" : L"") + std::to_wstring(s);
+                SetWindowTextW(hTimer, timeStr.c_str());
+
+                // App Blocking Logic (Silent)
+                wchar_t buffer[256];
+                GetWindowTextW(hEdit, buffer, 256);
+                KillAppSilent(buffer);
+            } else {
+                isRunning = false;
+                KillTimer(hwnd, 1);
+                focusStreak++; // Increase challenge streak
+                MessageBoxW(hwnd, L"Session Complete! Badge Earned: Focus Master 🏆", L"Apple Experience", MB_OK | MB_ICONINFORMATION);
             }
             break;
+        }
 
         case WM_CTLCOLORSTATIC: {
             HDC hdcStatic = (HDC)wParam;
-            SetTextColor(hdcStatic, RGB(45, 45, 45));
-            SetBkColor(hdcStatic, RGB(255, 255, 255));
-            return (LRESULT)GetStockObject(WHITE_BRUSH);
+            SetTextColor(hdcStatic, RGB(30, 30, 30));
+            SetBkMode(hdcStatic, TRANSPARENT);
+            return (LRESULT)GetStockObject(NULL_BRUSH);
+        }
+
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+            // මෙතන අපිට ඕන නම් gradient එකක් අඳින්න පුළුවන් Apple style එක ගන්න
+            EndPaint(hwnd, &ps);
+            break;
         }
 
         case WM_DESTROY:
@@ -122,16 +114,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    const wchar_t CLASS_NAME[] = L"AppleFocusClass";
+    const wchar_t CLASS_NAME[] = L"AppleUltraFocus";
     WNDCLASSW wc = {};
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
-    wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 
     RegisterClassW(&wc);
-    HWND hwnd = CreateWindowExW(0, CLASS_NAME, L"FocusPro", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 415, 430, NULL, NULL, hInstance, NULL);
+    // Window size එක පොඩ්ඩක් ලොකු කළා modern පෙනුමට
+    HWND hwnd = CreateWindowExW(WS_EX_NOREDIRECTIONBITMAP, CLASS_NAME, L"FocusPro Ultra", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 465, 480, NULL, NULL, hInstance, NULL);
 
     ShowWindow(hwnd, nCmdShow);
     MSG msg = {};
