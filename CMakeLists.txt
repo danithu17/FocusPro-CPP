@@ -17,3 +17,7 @@ target_compile_definitions(FocusPro PRIVATE SFML_STATIC)
 
 # Linking libraries
 target_link_libraries(FocusPro PRIVATE SFML::Graphics SFML::Window SFML::System)
+
+set_target_properties(FocusPro PROPERTIES LINK_FLAGS "/ENTRY:mainCRTStartup")
+
+target_link_libraries(FocusPro sfml-graphics sfml-window sfml-system)
