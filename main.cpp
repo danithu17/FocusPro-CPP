@@ -20,7 +20,7 @@ public:
     std::string activeCategory = "Work";
 
     FocusApp() {
-        font.openFromFile("C:/Windows/Fonts/segoeui.ttf");
+        if (!font.openFromFile("C:/Windows/Fonts/segoeui.ttf")) {}
         loadData();
     }
 
@@ -50,7 +50,6 @@ public:
 int main() {
     sf::ContextSettings settings;
     settings.antiAliasingLevel = 8;
-    // පොඩ්ඩක් පළල වැඩි කළා Sidebar එක දාන්න
     sf::RenderWindow window(sf::VideoMode({850, 650}), "FocusPro - Apple Desktop", sf::State::Windowed, settings);
     window.setFramerateLimit(60);
 
@@ -59,11 +58,9 @@ int main() {
     bool isRunning = false;
     sf::Clock clock;
 
-    // Sidebar Background
     sf::RectangleShape sidebar({250.f, 650.f});
     sidebar.setFillColor(sf::Color(30, 30, 30));
 
-    // Timer Circle
     sf::CircleShape ring(100.f);
     ring.setOutlineThickness(6.f);
     ring.setOutlineColor(sf::Color(0, 122, 255));
@@ -81,13 +78,13 @@ int main() {
             if (const auto* mb = event->getIf<sf::Event::MouseButtonPressed>()) {
                 sf::Vector2f mPos = window.mapPixelToCoords({mb->position.x, mb->position.y});
                 
-                // Sidebar category selection
-                if (sf::FloatRect({20, 100, 210, 40}).contains(mPos)) app.activeCategory = "Inbox";
-                if (sf::FloatRect({20, 150, 210, 40}).contains(mPos)) app.activeCategory = "Work";
-                if (sf::FloatRect({20, 200, 210, 40}).contains(mPos)) app.activeCategory = "Study";
+                // FIXED: SFML 3.0 Rect constructor for Sidebar Click Detection
+                if (sf::FloatRect({20.f, 100.f}, {210.f, 40.f}).contains(mPos)) app.activeCategory = "Inbox";
+                if (sf::FloatRect({20.f, 150.f}, {210.f, 40.f}).contains(mPos)) app.activeCategory = "Work";
+                if (sf::FloatRect({20.f, 200.f}, {210.f, 40.f}).contains(mPos)) app.activeCategory = "Study";
 
-                // Start button logic
-                if (sf::FloatRect({450, 320, 200, 50}).contains(mPos)) isRunning = !isRunning;
+                // FIXED: Start button rect
+                if (sf::FloatRect({450.f, 320.f}, {200.f, 50.f}).contains(mPos)) isRunning = !isRunning;
             }
         }
 
@@ -103,46 +100,46 @@ int main() {
 
         window.clear(sf::Color(18, 18, 18));
 
-        // Draw Sidebar
         window.draw(sidebar);
         sf::Text sideTitle(app.font, "Focus-To-Do", 22);
-        sideTitle.setPosition({30, 40});
+        sideTitle.setPosition({30.f, 40.f});
         window.draw(sideTitle);
 
         std::vector<std::string> cats = {"Inbox", "Work", "Study", "Gym"};
-        for(int i=0; i<cats.size(); i++) {
+        for(int i=0; i < (int)cats.size(); i++) {
             sf::Text catText(app.font, cats[i], 18);
-            catText.setPosition({50, 100.f + (i * 50.f)});
+            catText.setPosition({50.f, 100.f + (i * 50.f)});
             if(app.activeCategory == cats[i]) catText.setFillColor(sf::Color(0, 122, 255));
             window.draw(catText);
         }
 
-        // Draw Main Area (Timer)
         window.draw(ring);
         int m = timeLeft / 60, s = timeLeft % 60;
         std::stringstream ss;
         ss << std::setw(2) << std::setfill('0') << m << ":" << std::setw(2) << std::setfill('0') << s;
         sf::Text timerText(app.font, ss.str(), 60);
-        timerText.setOrigin({timerText.getLocalBounds().size.x/2, timerText.getLocalBounds().size.y/2});
+        sf::FloatRect tb = timerText.getLocalBounds();
+        timerText.setOrigin({tb.size.x / 2.f, tb.size.y / 2.f});
         timerText.setPosition({550.f, 185.f});
         window.draw(timerText);
 
-        // Start/Pause Button
-        sf::RectangleShape btn({160, 45});
+        sf::RectangleShape btn({160.f, 45.f});
         btn.setFillColor(sf::Color(0, 122, 255));
-        btn.setPosition({470, 320});
+        btn.setPosition({470.f, 320.f});
         window.draw(btn);
+        
         sf::Text bt(app.font, isRunning ? "PAUSE" : "START", 18);
-        bt.setPosition({515, 330});
+        sf::FloatRect bbt = bt.getLocalBounds();
+        bt.setPosition({550.f - bbt.size.x/2.f, 330.f});
         window.draw(bt);
 
-        // Task Summary Card
-        sf::RectangleShape card({500, 150});
+        sf::RectangleShape card({500.f, 150.f});
         card.setFillColor(sf::Color(255, 255, 255, 10));
-        card.setPosition({300, 450});
+        card.setPosition({300.f, 450.f});
         window.draw(card);
+        
         sf::Text stat(app.font, "Session: " + app.activeCategory + " | Total: " + std::to_string(app.totalFocusMins) + "m", 16);
-        stat.setPosition({320, 470});
+        stat.setPosition({320.f, 470.f});
         window.draw(stat);
 
         window.display();
