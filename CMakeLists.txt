@@ -10,7 +10,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # SFML 3.x සොයා ගැනීම
 find_package(SFML 3 CONFIG REQUIRED COMPONENTS Graphics Window System)
 
-add_executable(FocusPro main.cpp)
+add_executable(FocusPro WIN32 main.cpp)
 
 # Static linking flags
 target_compile_definitions(FocusPro PRIVATE SFML_STATIC)
