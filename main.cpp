@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
+#include <cstdint> // Required for uint8_t
 
 enum class Profile { Coding, Study, Creative };
 
@@ -37,13 +38,14 @@ public:
         if (p == Profile::Creative) targetColor = sf::Color(175, 82, 222);
     }
 
-    // Smoothly interpolate between colors
     void updateAnimation() {
         auto lerp = [](float start, float end, float t) { return start + t * (end - start); };
         float speed = 0.05f;
-        currentColor.r = (sf::Uint8)lerp(currentColor.r, targetColor.r, speed);
-        currentColor.g = (sf::Uint8)lerp(currentColor.g, targetColor.g, speed);
-        currentColor.b = (sf::Uint8)lerp(currentColor.b, targetColor.b, speed);
+        
+        // Fixed casting for SFML 3.0 Compatibility
+        currentColor.r = static_cast<std::uint8_t>(lerp(static_cast<float>(currentColor.r), static_cast<float>(targetColor.r), speed));
+        currentColor.g = static_cast<std::uint8_t>(lerp(static_cast<float>(currentColor.g), static_cast<float>(targetColor.g), speed));
+        currentColor.b = static_cast<std::uint8_t>(lerp(static_cast<float>(currentColor.b), static_cast<float>(targetColor.b), speed));
     }
 };
 
@@ -65,7 +67,6 @@ int main() {
             if (const auto* mb = event->getIf<sf::Event::MouseButtonPressed>()) {
                 sf::Vector2f mPos = window.mapPixelToCoords({mb->position.x, mb->position.y});
                 
-                // Sidebar Selection (Smooth profile switch)
                 if (sf::FloatRect({20.f, 100.f}, {210.f, 40.f}).contains(mPos)) app.switchProfile(Profile::Coding);
                 if (sf::FloatRect({20.f, 150.f}, {210.f, 40.f}).contains(mPos)) app.switchProfile(Profile::Study);
                 if (sf::FloatRect({20.f, 200.f}, {210.f, 40.f}).contains(mPos)) app.switchProfile(Profile::Creative);
@@ -74,7 +75,7 @@ int main() {
             }
         }
 
-        app.updateAnimation(); // Run smooth color logic
+        app.updateAnimation();
 
         if (isRunning) {
             static float accum = 0;
@@ -87,20 +88,19 @@ int main() {
 
         window.clear(sf::Color(10, 10, 10));
 
-        // 1. MICA BACKGROUND EFFECT
+        // Background Gradient
         sf::VertexArray gradient(sf::PrimitiveType::TriangleStrip, 4);
         gradient[0].position = {0, 0}; gradient[0].color = sf::Color(25, 25, 30);
         gradient[1].position = {1000, 0}; gradient[1].color = sf::Color(10, 10, 10);
         gradient[2].position = {0, 750}; gradient[2].color = sf::Color(15, 15, 15);
-        gradient[3].position = {1000, 750}; gradient[3].color = sf::Color(app.currentColor.r/10, app.currentColor.g/10, app.currentColor.b/10);
+        gradient[3].position = {1000, 750}; gradient[3].color = sf::Color(static_cast<std::uint8_t>(app.currentColor.r/10), static_cast<std::uint8_t>(app.currentColor.g/10), static_cast<std::uint8_t>(app.currentColor.b/10));
         window.draw(gradient);
 
-        // 2. SIDEBAR
+        // Sidebar
         sf::RectangleShape sidebar({250.f, 750.f});
         sidebar.setFillColor(sf::Color(0, 0, 0, 160));
         window.draw(sidebar);
 
-        // Sidebar Content
         sf::Text title(app.font, "FOCUS PRO", 24);
         title.setPosition({35.f, 40.f});
         window.draw(title);
@@ -113,7 +113,7 @@ int main() {
             window.draw(t);
         }
 
-        // 3. MAIN TIMER RING (Smoothly changing color)
+        // Timer Ring
         sf::CircleShape ring(130.f);
         ring.setOutlineThickness(4.f);
         ring.setOutlineColor(app.currentColor);
@@ -131,7 +131,7 @@ int main() {
         timerText.setPosition({630.f, 210.f});
         window.draw(timerText);
 
-        // 4. GLASS CARD (Goals)
+        // Glass Card
         sf::RectangleShape card({380.f, 220.f});
         card.setFillColor(sf::Color(255, 255, 255, 12));
         card.setPosition({440.f, 480.f});
@@ -142,13 +142,13 @@ int main() {
         goalHeader.setPosition({460.f, 495.f});
         window.draw(goalHeader);
 
-        for(int i=0; i<app.dailyGoals.size(); i++) {
+        for(int i=0; i< (int)app.dailyGoals.size(); i++) {
             sf::Text t(app.font, "[ ] " + app.dailyGoals[i].description, 17);
             t.setPosition({470.f, 530.f + (i * 40.f)});
             window.draw(t);
         }
 
-        // 5. START BUTTON
+        // Button
         sf::RectangleShape btn({180.f, 50.f});
         btn.setFillColor(app.currentColor);
         btn.setPosition({540.f, 370.f});
