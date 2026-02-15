@@ -4,25 +4,24 @@ project(FocusPro-CPP)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Static Runtime config
+# Static build එකට අනිවාර්ය MSVC settings
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-# 1. SFML package එක විතරක් හොයන්න (components නැතුව)
-find_package(SFML 3.0 REQUIRED)
+# 1. SFML package එක විතරක් load කරන්න
+find_package(SFML 3.0 REQUIRED COMPONENTS graphics window system)
 
-# 2. Executable එක හදන්න (WIN32 නිසා CMD window එක එන්නේ නැහැ)
+# 2. Executable එක හදන්න (WIN32 නිසා CMD එක අයින් වෙනවා)
 add_executable(FocusPro WIN32 main.cpp)
 
-# 3. SFML වල අභ්‍යන්තර targets කෙලින්ම ලින්ක් කිරීම
-# SFML 3.0 වල vcpkg මගින් සපයන නිවැරදි targets මේවායි
+# 3. Targets manually link කිරීම (SFML 3.0 vcpkg standard)
+# මෙතැනදී SFML::graphics වැනි namespaces පාවිච්චි කරමු
 target_link_libraries(FocusPro PRIVATE 
-    sfml-graphics 
-    sfml-window 
-    sfml-system
-    opengl32
+    SFML::graphics 
+    SFML::window 
+    SFML::system
 )
 
-# 4. Entry point එක fix කිරීම (WinMain error එක මගහැරීමට)
+# 4. WinMain entry point error එක මගහැරීමට
 set_target_properties(FocusPro PROPERTIES 
     LINK_FLAGS "/ENTRY:mainCRTStartup"
 )

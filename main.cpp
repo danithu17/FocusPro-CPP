@@ -21,10 +21,11 @@ public:
     std::vector<Goal> dailyGoals;
 
     FocusApp() {
+        // Windows system font load කිරීම
         if (!font.openFromFile("C:/Windows/Fonts/segoeui.ttf")) {}
-        dailyGoals.push_back({"Fix Build System", true});
+        dailyGoals.push_back({"Finalize Build Logic", true});
         dailyGoals.push_back({"Implement Mica UI", false});
-        dailyGoals.push_back({"Add Daily Goals", false});
+        dailyGoals.push_back({"Setup Daily Goals", false});
     }
 
     void setProfile(Profile p) {
@@ -61,23 +62,31 @@ int main() {
 
             if (const auto* mb = event->getIf<sf::Event::MouseButtonPressed>()) {
                 sf::Vector2f mPos = window.mapPixelToCoords({mb->position.x, mb->position.y});
+                
+                // Sidebar Select
                 if (sf::FloatRect({20.f, 100.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Coding);
                 if (sf::FloatRect({20.f, 150.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Study);
                 if (sf::FloatRect({20.f, 200.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Creative);
+
+                // Start/Pause Button
                 if (sf::FloatRect({410.f, 370.f}, {180.f, 50.f}).contains(mPos)) isRunning = !isRunning;
             }
         }
 
         app.updateTheme();
+
         if (isRunning) {
             static float accum = 0;
             accum += clock.restart().asSeconds();
-            if (accum >= 1.0f) { if (timeLeft > 0) timeLeft--; accum = 0; }
+            if (accum >= 1.0f) {
+                if (timeLeft > 0) timeLeft--;
+                accum = 0;
+            }
         } else { clock.restart(); }
 
         window.clear(sf::Color{10, 10, 10});
 
-        // Mica Background Effect
+        // Mica Background Gradient
         sf::VertexArray bg(sf::PrimitiveType::TriangleStrip, 4);
         bg[0].position = {0, 0}; bg[0].color = sf::Color{25, 25, 30};
         bg[1].position = {1000, 0}; bg[1].color = sf::Color{10, 10, 10};
@@ -89,6 +98,7 @@ int main() {
         sf::RectangleShape sidebar({250.f, 750.f});
         sidebar.setFillColor(sf::Color{0, 0, 0, 180});
         window.draw(sidebar);
+
         sf::Text title(app.font, "FOCUS PRO", 22);
         title.setPosition({40.f, 40.f});
         window.draw(title);
@@ -106,6 +116,7 @@ int main() {
         card.setFillColor(sf::Color{255, 255, 255, 10});
         card.setPosition({660.f, 100.f});
         window.draw(card);
+
         sf::Text gTitle(app.font, "DAILY GOALS", 14);
         gTitle.setFillColor(sf::Color{150, 150, 150});
         gTitle.setPosition({680.f, 120.f});
@@ -118,7 +129,7 @@ int main() {
             window.draw(t);
         }
 
-        // Timer
+        // Main Timer Ring
         sf::CircleShape ring(130.f);
         ring.setOutlineThickness(3.f);
         ring.setOutlineColor(app.currentColor);
@@ -136,11 +147,12 @@ int main() {
         timerText.setPosition({500.f, 210.f});
         window.draw(timerText);
 
-        // Start/Pause Button
+        // Control Button
         sf::RectangleShape btn({180.f, 50.f});
         btn.setFillColor(app.currentColor);
         btn.setPosition({410.f, 370.f});
         window.draw(btn);
+
         sf::Text btTxt(app.font, isRunning ? "PAUSE" : "START", 18);
         sf::FloatRect btb = btTxt.getLocalBounds();
         btTxt.setPosition({500.f - btb.size.x / 2.f, 382.f});
