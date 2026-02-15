@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <cstdint>
 
-struct Task {
+struct Goal {
     std::string text;
     bool isDone;
 };
@@ -18,13 +18,23 @@ public:
     Profile currentProfile = Profile::Coding;
     sf::Color targetColor{0, 122, 255}; 
     sf::Color currentColor{0, 122, 255};
-    std::vector<Task> goals;
+    std::vector<Goal> goals;
 
     FocusApp() {
         if (!font.openFromFile("C:/Windows/Fonts/segoeui.ttf")) {}
-        goals.push_back({"Fix SFML Build", true});
-        goals.push_back({"Daily Goals UI", false});
-        goals.push_back({"Focus Mode Logic", false});
+        goals.push_back({"Fix Build System", true});
+        goals.push_back({"Implement Daily Goals", false});
+        goals.push_back({"Add Lofi Sounds", false});
+    }
+
+    void updateTheme(float dt) {
+        float speed = 5.0f * dt;
+        auto lerp = [&](std::uint8_t start, std::uint8_t end) {
+            return static_cast<std::uint8_t>(start + speed * (end - start));
+        };
+        currentColor.r = lerp(currentColor.r, targetColor.r);
+        currentColor.g = lerp(currentColor.g, targetColor.g);
+        currentColor.b = lerp(currentColor.b, targetColor.b);
     }
 
     void setProfile(Profile p) {
@@ -32,16 +42,6 @@ public:
         if (p == Profile::Coding) targetColor = sf::Color{0, 122, 255};
         else if (p == Profile::Study) targetColor = sf::Color{255, 149, 0}; 
         else if (p == Profile::Creative) targetColor = sf::Color{175, 82, 222};
-    }
-
-    void update(float dt) {
-        float speed = 5.0f * dt; // Smooth transition speed
-        auto lerp = [&](std::uint8_t start, std::uint8_t end) {
-            return static_cast<std::uint8_t>(start + speed * (end - start));
-        };
-        currentColor.r = lerp(currentColor.r, targetColor.r);
-        currentColor.g = lerp(currentColor.g, targetColor.g);
-        currentColor.b = lerp(currentColor.b, targetColor.b);
     }
 };
 
@@ -64,14 +64,16 @@ int main() {
             if (event->is<sf::Event::Closed>()) window.close();
             if (const auto* mb = event->getIf<sf::Event::MouseButtonPressed>()) {
                 sf::Vector2f mPos = window.mapPixelToCoords({mb->position.x, mb->position.y});
+                // Sidebar logic
                 if (sf::FloatRect({20.f, 100.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Coding);
                 if (sf::FloatRect({20.f, 150.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Study);
                 if (sf::FloatRect({20.f, 200.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Creative);
+                // Timer toggle
                 if (sf::FloatRect({410.f, 370.f}, {180.f, 50.f}).contains(mPos)) isRunning = !isRunning;
             }
         }
 
-        app.update(dt);
+        app.updateTheme(dt);
         if (isRunning && timerClock.getElapsedTime().asSeconds() >= 1.f) {
             if (timeLeft > 0) timeLeft--;
             timerClock.restart();
@@ -79,15 +81,15 @@ int main() {
 
         window.clear(sf::Color{10, 10, 10});
 
-        // Background Mica Gradient
+        // 1. Mica Background
         sf::VertexArray bg(sf::PrimitiveType::TriangleStrip, 4);
-        bg[0].position = {0, 0}; bg[0].color = sf::Color{20, 20, 25};
+        bg[0].position = {0, 0}; bg[0].color = sf::Color{25, 25, 30};
         bg[1].position = {1000, 0}; bg[1].color = sf::Color{10, 10, 10};
         bg[2].position = {0, 750}; bg[2].color = sf::Color{15, 15, 15};
         bg[3].position = {1000, 750}; bg[3].color = sf::Color(app.currentColor.r/15, app.currentColor.g/15, app.currentColor.b/15);
         window.draw(bg);
 
-        // Sidebar
+        // 2. Sidebar
         sf::RectangleShape sidebar({250.f, 750.f});
         sidebar.setFillColor(sf::Color{0, 0, 0, 180});
         window.draw(sidebar);
@@ -95,7 +97,7 @@ int main() {
         title.setPosition({40.f, 40.f});
         window.draw(title);
 
-        // Goals Card
+        // 3. Goals Card (Glassmorphism)
         sf::RectangleShape card({320.f, 450.f});
         card.setFillColor(sf::Color{255, 255, 255, 12});
         card.setPosition({640.f, 100.f});
@@ -112,7 +114,7 @@ int main() {
             window.draw(t);
         }
 
-        // Timer Circle
+        // 4. Timer Ring
         sf::CircleShape ring(130.f);
         ring.setOutlineThickness(3.f);
         ring.setOutlineColor(app.currentColor);
