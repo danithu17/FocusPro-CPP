@@ -16,15 +16,12 @@ class FocusApp {
 public:
     sf::Font font;
     Profile currentProfile = Profile::Coding;
-    sf::Color targetColor = sf::Color(0, 122, 255); 
-    sf::Color currentColor = sf::Color(0, 122, 255);
+    sf::Color targetColor{0, 122, 255}; 
+    sf::Color currentColor{0, 122, 255};
     std::vector<Goal> dailyGoals;
 
     FocusApp() {
-        // Windows system font load කිරීම
-        font.openFromFile("C:/Windows/Fonts/segoeui.ttf");
-        
-        // පරීක්ෂාව සඳහා Goals කිහිපයක්
+        if (!font.openFromFile("C:/Windows/Fonts/segoeui.ttf")) {}
         dailyGoals.push_back({"Fix Build System", true});
         dailyGoals.push_back({"Implement Mica UI", false});
         dailyGoals.push_back({"Add Daily Goals", false});
@@ -32,9 +29,9 @@ public:
 
     void setProfile(Profile p) {
         currentProfile = p;
-        if (p == Profile::Coding) targetColor = sf::Color(0, 122, 255);
-        else if (p == Profile::Study) targetColor = sf::Color(255, 149, 0); 
-        else if (p == Profile::Creative) targetColor = sf::Color(175, 82, 222);
+        if (p == Profile::Coding) targetColor = sf::Color{0, 122, 255};
+        else if (p == Profile::Study) targetColor = sf::Color{255, 149, 0}; 
+        else if (p == Profile::Creative) targetColor = sf::Color{175, 82, 222};
     }
 
     void updateTheme() {
@@ -64,43 +61,34 @@ int main() {
 
             if (const auto* mb = event->getIf<sf::Event::MouseButtonPressed>()) {
                 sf::Vector2f mPos = window.mapPixelToCoords({mb->position.x, mb->position.y});
-                
-                // Sidebar Click logic
                 if (sf::FloatRect({20.f, 100.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Coding);
                 if (sf::FloatRect({20.f, 150.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Study);
                 if (sf::FloatRect({20.f, 200.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Creative);
-
-                // Start/Pause Button
                 if (sf::FloatRect({410.f, 370.f}, {180.f, 50.f}).contains(mPos)) isRunning = !isRunning;
             }
         }
 
         app.updateTheme();
-
         if (isRunning) {
             static float accum = 0;
             accum += clock.restart().asSeconds();
-            if (accum >= 1.0f) {
-                if (timeLeft > 0) timeLeft--;
-                accum = 0;
-            }
+            if (accum >= 1.0f) { if (timeLeft > 0) timeLeft--; accum = 0; }
         } else { clock.restart(); }
 
-        window.clear(sf::Color(10, 10, 10));
+        window.clear(sf::Color{10, 10, 10});
 
-        // 1. Background Gradient (Mica Effect)
+        // Mica Background Effect
         sf::VertexArray bg(sf::PrimitiveType::TriangleStrip, 4);
-        bg[0].position = {0, 0}; bg[0].color = sf::Color(25, 25, 30);
-        bg[1].position = {1000, 0}; bg[1].color = sf::Color(10, 10, 10);
-        bg[2].position = {0, 750}; bg[2].color = sf::Color(15, 15, 15);
+        bg[0].position = {0, 0}; bg[0].color = sf::Color{25, 25, 30};
+        bg[1].position = {1000, 0}; bg[1].color = sf::Color{10, 10, 10};
+        bg[2].position = {0, 750}; bg[2].color = sf::Color{15, 15, 15};
         bg[3].position = {1000, 750}; bg[3].color = sf::Color(static_cast<std::uint8_t>(app.currentColor.r / 15), static_cast<std::uint8_t>(app.currentColor.g / 15), static_cast<std::uint8_t>(app.currentColor.b / 15));
         window.draw(bg);
 
-        // 2. Sidebar
+        // Sidebar
         sf::RectangleShape sidebar({250.f, 750.f});
-        sidebar.setFillColor(sf::Color(0, 0, 0, 180));
+        sidebar.setFillColor(sf::Color{0, 0, 0, 180});
         window.draw(sidebar);
-
         sf::Text title(app.font, "FOCUS PRO", 22);
         title.setPosition({40.f, 40.f});
         window.draw(title);
@@ -113,25 +101,24 @@ int main() {
             window.draw(t);
         }
 
-        // 3. Daily Goals Card
+        // Daily Goals Card
         sf::RectangleShape card({300.f, 400.f});
-        card.setFillColor(sf::Color(255, 255, 255, 10));
+        card.setFillColor(sf::Color{255, 255, 255, 10});
         card.setPosition({660.f, 100.f});
         window.draw(card);
-
         sf::Text gTitle(app.font, "DAILY GOALS", 14);
-        gTitle.setFillColor(sf::Color(150, 150, 150));
+        gTitle.setFillColor(sf::Color{150, 150, 150});
         gTitle.setPosition({680.f, 120.f});
         window.draw(gTitle);
 
         for (size_t i = 0; i < app.dailyGoals.size(); i++) {
             sf::Text t(app.font, (app.dailyGoals[i].completed ? "[x] " : "[ ] ") + app.dailyGoals[i].text, 16);
             t.setPosition({680.f, 160.f + (static_cast<float>(i) * 40.f)});
-            if (app.dailyGoals[i].completed) t.setFillColor(sf::Color(100, 100, 100));
+            if (app.dailyGoals[i].completed) t.setFillColor(sf::Color{100, 100, 100});
             window.draw(t);
         }
 
-        // 4. Timer Center UI
+        // Timer
         sf::CircleShape ring(130.f);
         ring.setOutlineThickness(3.f);
         ring.setOutlineColor(app.currentColor);
@@ -149,12 +136,11 @@ int main() {
         timerText.setPosition({500.f, 210.f});
         window.draw(timerText);
 
-        // Start Button
+        // Start/Pause Button
         sf::RectangleShape btn({180.f, 50.f});
         btn.setFillColor(app.currentColor);
         btn.setPosition({410.f, 370.f});
         window.draw(btn);
-
         sf::Text btTxt(app.font, isRunning ? "PAUSE" : "START", 18);
         sf::FloatRect btb = btTxt.getLocalBounds();
         btTxt.setPosition({500.f - btb.size.x / 2.f, 382.f});
