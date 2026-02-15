@@ -5,9 +5,9 @@
 #include <iomanip>
 #include <cstdint>
 
-struct Goal {
+struct Task {
     std::string text;
-    bool completed;
+    bool isDone;
 };
 
 enum class Profile { Coding, Study, Creative };
@@ -18,14 +18,13 @@ public:
     Profile currentProfile = Profile::Coding;
     sf::Color targetColor{0, 122, 255}; 
     sf::Color currentColor{0, 122, 255};
-    std::vector<Goal> dailyGoals;
+    std::vector<Task> goals;
 
     FocusApp() {
-        // Windows system font load කිරීම
         if (!font.openFromFile("C:/Windows/Fonts/segoeui.ttf")) {}
-        dailyGoals.push_back({"Finalize Build Logic", true});
-        dailyGoals.push_back({"Implement Mica UI", false});
-        dailyGoals.push_back({"Setup Daily Goals", false});
+        goals.push_back({"Fix SFML Build", true});
+        goals.push_back({"Daily Goals UI", false});
+        goals.push_back({"Focus Mode Logic", false});
     }
 
     void setProfile(Profile p) {
@@ -35,128 +34,100 @@ public:
         else if (p == Profile::Creative) targetColor = sf::Color{175, 82, 222};
     }
 
-    void updateTheme() {
-        float speed = 0.05f;
-        auto lerp = [&](float start, float end) { return start + speed * (end - start); };
-        
-        currentColor.r = static_cast<std::uint8_t>(lerp(static_cast<float>(currentColor.r), static_cast<float>(targetColor.r)));
-        currentColor.g = static_cast<std::uint8_t>(lerp(static_cast<float>(currentColor.g), static_cast<float>(targetColor.g)));
-        currentColor.b = static_cast<std::uint8_t>(lerp(static_cast<float>(currentColor.b), static_cast<float>(targetColor.b)));
+    void update(float dt) {
+        float speed = 5.0f * dt; // Smooth transition speed
+        auto lerp = [&](std::uint8_t start, std::uint8_t end) {
+            return static_cast<std::uint8_t>(start + speed * (end - start));
+        };
+        currentColor.r = lerp(currentColor.r, targetColor.r);
+        currentColor.g = lerp(currentColor.g, targetColor.g);
+        currentColor.b = lerp(currentColor.b, targetColor.b);
     }
 };
 
 int main() {
     sf::ContextSettings settings;
     settings.antiAliasingLevel = 8;
-    sf::RenderWindow window(sf::VideoMode({1000, 750}), "FocusPro - Apple Workspace", sf::State::Windowed, settings);
+    sf::RenderWindow window(sf::VideoMode({1000, 750}), "FocusPro Premium", sf::State::Windowed, settings);
     window.setFramerateLimit(60);
 
     FocusApp app;
+    sf::Clock deltaClock;
     int timeLeft = 25 * 60;
     bool isRunning = false;
-    sf::Clock clock;
+    sf::Clock timerClock;
 
     while (window.isOpen()) {
+        float dt = deltaClock.restart().asSeconds();
+
         while (const std::optional event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) window.close();
-
             if (const auto* mb = event->getIf<sf::Event::MouseButtonPressed>()) {
                 sf::Vector2f mPos = window.mapPixelToCoords({mb->position.x, mb->position.y});
-                
-                // Sidebar Select
                 if (sf::FloatRect({20.f, 100.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Coding);
                 if (sf::FloatRect({20.f, 150.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Study);
                 if (sf::FloatRect({20.f, 200.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Creative);
-
-                // Start/Pause Button
                 if (sf::FloatRect({410.f, 370.f}, {180.f, 50.f}).contains(mPos)) isRunning = !isRunning;
             }
         }
 
-        app.updateTheme();
-
-        if (isRunning) {
-            static float accum = 0;
-            accum += clock.restart().asSeconds();
-            if (accum >= 1.0f) {
-                if (timeLeft > 0) timeLeft--;
-                accum = 0;
-            }
-        } else { clock.restart(); }
+        app.update(dt);
+        if (isRunning && timerClock.getElapsedTime().asSeconds() >= 1.f) {
+            if (timeLeft > 0) timeLeft--;
+            timerClock.restart();
+        }
 
         window.clear(sf::Color{10, 10, 10});
 
-        // Mica Background Gradient
+        // Background Mica Gradient
         sf::VertexArray bg(sf::PrimitiveType::TriangleStrip, 4);
-        bg[0].position = {0, 0}; bg[0].color = sf::Color{25, 25, 30};
+        bg[0].position = {0, 0}; bg[0].color = sf::Color{20, 20, 25};
         bg[1].position = {1000, 0}; bg[1].color = sf::Color{10, 10, 10};
         bg[2].position = {0, 750}; bg[2].color = sf::Color{15, 15, 15};
-        bg[3].position = {1000, 750}; bg[3].color = sf::Color(static_cast<std::uint8_t>(app.currentColor.r / 15), static_cast<std::uint8_t>(app.currentColor.g / 15), static_cast<std::uint8_t>(app.currentColor.b / 15));
+        bg[3].position = {1000, 750}; bg[3].color = sf::Color(app.currentColor.r/15, app.currentColor.g/15, app.currentColor.b/15);
         window.draw(bg);
 
         // Sidebar
         sf::RectangleShape sidebar({250.f, 750.f});
         sidebar.setFillColor(sf::Color{0, 0, 0, 180});
         window.draw(sidebar);
-
         sf::Text title(app.font, "FOCUS PRO", 22);
         title.setPosition({40.f, 40.f});
         window.draw(title);
 
-        std::vector<std::string> modes = {"Coding Mode", "Study Mode", "Creative Mode"};
-        for (int i = 0; i < 3; i++) {
-            sf::Text t(app.font, modes[i], 16);
-            t.setPosition({50.f, 110.f + (static_cast<float>(i) * 50.f)});
-            if (static_cast<int>(app.currentProfile) == i) t.setFillColor(app.currentColor);
-            window.draw(t);
-        }
-
-        // Daily Goals Card
-        sf::RectangleShape card({300.f, 400.f});
-        card.setFillColor(sf::Color{255, 255, 255, 10});
-        card.setPosition({660.f, 100.f});
+        // Goals Card
+        sf::RectangleShape card({320.f, 450.f});
+        card.setFillColor(sf::Color{255, 255, 255, 12});
+        card.setPosition({640.f, 100.f});
         window.draw(card);
-
         sf::Text gTitle(app.font, "DAILY GOALS", 14);
-        gTitle.setFillColor(sf::Color{150, 150, 150});
-        gTitle.setPosition({680.f, 120.f});
+        gTitle.setFillColor(sf::Color{180, 180, 180});
+        gTitle.setPosition({660.f, 120.f});
         window.draw(gTitle);
 
-        for (size_t i = 0; i < app.dailyGoals.size(); i++) {
-            sf::Text t(app.font, (app.dailyGoals[i].completed ? "[x] " : "[ ] ") + app.dailyGoals[i].text, 16);
-            t.setPosition({680.f, 160.f + (static_cast<float>(i) * 40.f)});
-            if (app.dailyGoals[i].completed) t.setFillColor(sf::Color{100, 100, 100});
+        for (size_t i = 0; i < app.goals.size(); i++) {
+            sf::Text t(app.font, (app.goals[i].isDone ? "[x] " : "[ ] ") + app.goals[i].text, 16);
+            t.setPosition({670.f, 160.f + (i * 40.f)});
+            if (app.goals[i].isDone) t.setFillColor(sf::Color{100, 100, 100});
             window.draw(t);
         }
 
-        // Main Timer Ring
+        // Timer Circle
         sf::CircleShape ring(130.f);
         ring.setOutlineThickness(3.f);
         ring.setOutlineColor(app.currentColor);
         ring.setFillColor(sf::Color::Transparent);
         ring.setOrigin({130.f, 130.f});
-        ring.setPosition({500.f, 220.f});
+        ring.setPosition({440.f, 220.f});
         window.draw(ring);
 
-        int m = timeLeft / 60, s = timeLeft % 60;
         std::stringstream ss;
-        ss << std::setw(2) << std::setfill('0') << m << ":" << std::setw(2) << std::setfill('0') << s;
+        ss << std::setw(2) << std::setfill('0') << timeLeft/60 << ":" << std::setw(2) << std::setfill('0') << timeLeft%60;
         sf::Text timerText(app.font, ss.str(), 80);
         sf::FloatRect tb = timerText.getLocalBounds();
-        timerText.setOrigin({tb.size.x / 2.f, tb.size.y / 2.f});
-        timerText.setPosition({500.f, 210.f});
+        timerText.setOrigin({tb.size.x/2.f, tb.size.y/2.f});
+        timerText.setPosition({440.f, 210.f});
         window.draw(timerText);
-
-        // Control Button
-        sf::RectangleShape btn({180.f, 50.f});
-        btn.setFillColor(app.currentColor);
-        btn.setPosition({410.f, 370.f});
-        window.draw(btn);
-
-        sf::Text btTxt(app.font, isRunning ? "PAUSE" : "START", 18);
-        sf::FloatRect btb = btTxt.getLocalBounds();
-        btTxt.setPosition({500.f - btb.size.x / 2.f, 382.f});
-        window.draw(btTxt);
 
         window.display();
     }
