@@ -21,11 +21,13 @@ public:
     std::vector<Goal> dailyGoals;
 
     FocusApp() {
-        if (!font.openFromFile("C:/Windows/Fonts/segoeui.ttf")) {}
-        // Default Goals කිහිපයක්
-        dailyGoals.push_back({"Finish C++ Logic", true});
-        dailyGoals.push_back({"Design Mica UI", false});
-        dailyGoals.push_back({"Fix Build Errors", false});
+        // Windows system font load කිරීම
+        font.openFromFile("C:/Windows/Fonts/segoeui.ttf");
+        
+        // පරීක්ෂාව සඳහා Goals කිහිපයක්
+        dailyGoals.push_back({"Fix Build System", true});
+        dailyGoals.push_back({"Implement Mica UI", false});
+        dailyGoals.push_back({"Add Daily Goals", false});
     }
 
     void setProfile(Profile p) {
@@ -38,9 +40,10 @@ public:
     void updateTheme() {
         float speed = 0.05f;
         auto lerp = [&](float start, float end) { return start + speed * (end - start); };
-        currentColor.r = static_cast<std::uint8_t>(lerp(currentColor.r, targetColor.r));
-        currentColor.g = static_cast<std::uint8_t>(lerp(currentColor.g, targetColor.g));
-        currentColor.b = static_cast<std::uint8_t>(lerp(currentColor.b, targetColor.b));
+        
+        currentColor.r = static_cast<std::uint8_t>(lerp(static_cast<float>(currentColor.r), static_cast<float>(targetColor.r)));
+        currentColor.g = static_cast<std::uint8_t>(lerp(static_cast<float>(currentColor.g), static_cast<float>(targetColor.g)));
+        currentColor.b = static_cast<std::uint8_t>(lerp(static_cast<float>(currentColor.b), static_cast<float>(targetColor.b)));
     }
 };
 
@@ -62,7 +65,7 @@ int main() {
             if (const auto* mb = event->getIf<sf::Event::MouseButtonPressed>()) {
                 sf::Vector2f mPos = window.mapPixelToCoords({mb->position.x, mb->position.y});
                 
-                // Sidebar Selection
+                // Sidebar Click logic
                 if (sf::FloatRect({20.f, 100.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Coding);
                 if (sf::FloatRect({20.f, 150.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Study);
                 if (sf::FloatRect({20.f, 200.f}, {210.f, 40.f}).contains(mPos)) app.setProfile(Profile::Creative);
@@ -85,7 +88,7 @@ int main() {
 
         window.clear(sf::Color(10, 10, 10));
 
-        // Background Mica Gradient
+        // 1. Background Gradient (Mica Effect)
         sf::VertexArray bg(sf::PrimitiveType::TriangleStrip, 4);
         bg[0].position = {0, 0}; bg[0].color = sf::Color(25, 25, 30);
         bg[1].position = {1000, 0}; bg[1].color = sf::Color(10, 10, 10);
@@ -93,7 +96,7 @@ int main() {
         bg[3].position = {1000, 750}; bg[3].color = sf::Color(static_cast<std::uint8_t>(app.currentColor.r / 15), static_cast<std::uint8_t>(app.currentColor.g / 15), static_cast<std::uint8_t>(app.currentColor.b / 15));
         window.draw(bg);
 
-        // Sidebar Panel
+        // 2. Sidebar
         sf::RectangleShape sidebar({250.f, 750.f});
         sidebar.setFillColor(sf::Color(0, 0, 0, 180));
         window.draw(sidebar);
@@ -110,16 +113,16 @@ int main() {
             window.draw(t);
         }
 
-        // Daily Goals Card (Right side)
+        // 3. Daily Goals Card
         sf::RectangleShape card({300.f, 400.f});
         card.setFillColor(sf::Color(255, 255, 255, 10));
         card.setPosition({660.f, 100.f});
         window.draw(card);
 
-        sf::Text goalTitle(app.font, "DAILY GOALS", 14);
-        goalTitle.setFillColor(sf::Color(150, 150, 150));
-        goalTitle.setPosition({680.f, 120.f});
-        window.draw(goalTitle);
+        sf::Text gTitle(app.font, "DAILY GOALS", 14);
+        gTitle.setFillColor(sf::Color(150, 150, 150));
+        gTitle.setPosition({680.f, 120.f});
+        window.draw(gTitle);
 
         for (size_t i = 0; i < app.dailyGoals.size(); i++) {
             sf::Text t(app.font, (app.dailyGoals[i].completed ? "[x] " : "[ ] ") + app.dailyGoals[i].text, 16);
@@ -128,7 +131,7 @@ int main() {
             window.draw(t);
         }
 
-        // Main Timer Ring (Center-ish)
+        // 4. Timer Center UI
         sf::CircleShape ring(130.f);
         ring.setOutlineThickness(3.f);
         ring.setOutlineColor(app.currentColor);
@@ -146,7 +149,7 @@ int main() {
         timerText.setPosition({500.f, 210.f});
         window.draw(timerText);
 
-        // Control Button
+        // Start Button
         sf::RectangleShape btn({180.f, 50.f});
         btn.setFillColor(app.currentColor);
         btn.setPosition({410.f, 370.f});
